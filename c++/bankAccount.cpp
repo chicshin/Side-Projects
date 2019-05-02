@@ -3,12 +3,6 @@
 using namespace std;
 const int NAME_LEN=20;
 
-void ShowMenu(void);
-void CreateAccount(void);
-void DepositMoney(void);
-void WithdrawMoney(void);
-void ShowAllInfo(void);
-
 enum{CREATE=1, DEPOSIT, WITHDRAWL, INQUIRE, EXIT};
 
 class Account
@@ -17,91 +11,76 @@ class Account
     int balance;
     char * cusName;
 public:
-    Account(int accID, int balance, char * cusName)
-    {
-        this->accID=accID;
-        this->balance=balance;
-        this->cusName=new char[strlen(cusName)+1];
-        strcpy(this->cusName, cusName);
-    }
+    Account(int accID, int balance, char * cusName);
+    Account(const Account & copy);
 
-    Account(const Account & copy)
-    {
-        this->accID=copy.accID;
-        this->balance=copy.balance;
-        this->cusName=new char[strlen(copy.cusName)+1];
-        strcpy(this->cusName, copy.cusName);
-    }
-
-    int GetAccID() { return accID; }
-
-    void Deposit(int money)
-    {
-        balance+=money;
-    }
-
-    int Withdraw(int money)
-    {
-        if(balance<money)
-        {
-            return 0;
-        }
-        balance-=money;
-        return money;
-    }
-
-    void ShowAccInfo()
-    {
-        cout<<"ID: "<<accID<<endl;
-        cout<<"Name: "<<cusName<<endl;
-        cout<<"Balance: $"<<balance<<endl;
-    }
-
-    ~Account()
-    {
-        delete []cusName;
-    }
+    int GetAccID() const;
+    void Deposit(int money);
+    int Withdraw(int money);
+    void ShowAccInfo() const;
+    ~Account();
 };
 
-Account * accArr[100];
-int accNum=0;
-
-
-int main(void)
+Account::Account(int accID, int balance, char * cusName)
 {
-    int choice;
-
-    while(1)
-    {
-        ShowMenu();
-        cout<<"Select... ";
-        cin>>choice;
-        cout<<endl;
-
-        switch(choice)
-        {
-        case CREATE:
-            CreateAccount();
-            break;
-        case DEPOSIT:
-            DepositMoney();
-            break;
-        case WITHDRAWL:
-            WithdrawMoney();
-            break;
-        case INQUIRE:
-            ShowAllInfo();
-            break;
-        case EXIT:
-            return 0;
-        default:
-            cout<<"Invalid Selection"<<endl;
-        }
-    }
-    return 0;
+    this->accID=accID;
+    this->balance=balance;
+    this->cusName=new char[strlen(cusName)+1];
+    strcpy(this->cusName, cusName);
 }
 
-void ShowMenu(void)
+Account::Account(const Account & copy)
+{
+    this->accID=copy.accID;
+    this->balance=copy.balance;
+    this->cusName=new char[strlen(copy.cusName)+1];
+    strcpy(this->cusName, copy.cusName);
+}
+
+int Account::GetAccID() const { return accID; }
+
+void Account::Deposit(int money)
+{
+    balance+=money;
+}
+
+int Account::Withdraw(int money)
+{
+    if(balance<money)
+    {
+        return 0;
+    }
+    balance-=money;
+    return money;
+}
+
+void Account::ShowAccInfo() const
+{
+    cout<<"ID: "<<accID<<endl;
+    cout<<"Name: "<<cusName<<endl;
+    cout<<"Balance: $"<<balance<<endl;
+}
+
+Account::~Account()
+{
+    delete []cusName;
+}
+
+class AccountHandler
+{
+    Account * accArr[100];
+    int accNum;
+public:
+    AccountHandler();
+    void ShowMenu(void) const;
+    void CreateAccount(void);
+    void DepositMoney(void);
+    void WithdrawMoney(void);
+    void ShowAllInfo(void);
+    ~AccountHandler();
+};
+
+void AccountHandler::ShowMenu(void) const
 {
     cout<<"-----Menu-----"<<endl;
     cout<<"1. Create Account"<<endl;
@@ -111,7 +90,7 @@ void ShowMenu(void)
     cout<<"5. Quit"<<endl;
 }
 
-void CreateAccount(void)
+void AccountHandler::CreateAccount(void)
 {
     int id;
     char name[NAME_LEN];
@@ -126,7 +105,7 @@ void CreateAccount(void)
     accArr[accNum++]=new Account(id, balance, name);
 }
 
-void DepositMoney(void)
+void AccountHandler::DepositMoney(void)
 {
     int money;
     int id;
@@ -147,7 +126,7 @@ void DepositMoney(void)
     cout<<"Invalid ID"<<endl;
 }
 
-void WithdrawMoney(void)
+void AccountHandler::WithdrawMoney(void)
 {
     int money;
     int id;
@@ -172,11 +151,55 @@ void WithdrawMoney(void)
     cout<<"Invalid Account ID"<<endl;
 }
 
-void ShowAllInfo(void)
+AccountHandler::AccountHandler() : accNum(0) {}
+
+void AccountHandler::ShowAllInfo(void)
 {
     for(int i=0; i<accNum; i++)
     {
         accArr[i]->ShowAccInfo();
         cout<<endl;
     }
+}
+
+AccountHandler::~AccountHandler()
+{
+    for(int i=0; i<accNum; i++)
+    {
+        delete accArr[i];
+    }
+}
+int main(void)
+{
+    AccountHandler manager;
+    int choice;
+
+    while(1)
+    {
+        manager.ShowMenu();
+        cout<<"Select... ";
+        cin>>choice;
+        cout<<endl;
+
+        switch(choice)
+        {
+        case CREATE:
+            manager.CreateAccount();
+            break;
+        case DEPOSIT:
+            manager.DepositMoney();
+            break;
+        case WITHDRAWL:
+            manager.WithdrawMoney();
+            break;
+        case INQUIRE:
+            manager.ShowAllInfo();
+            break;
+        case EXIT:
+            return 0;
+        default:
+            cout<<"Invalid Selection"<<endl;
+        }
+    }
+    return 0;
 }
