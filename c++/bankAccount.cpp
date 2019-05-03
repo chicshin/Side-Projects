@@ -3,41 +3,45 @@
 using namespace std;
 const int NAME_LEN=20;
 
-enum{CREATE=1, DEPOSIT, WITHDRAWL, INQUIRE, EXIT};
+enum {CREATE=1, DEPOSIT, WITHDRAWL, INQUIRE, EXIT};
 
+enum {LEVEL_A=7, LEVEL_B=4, LEVEL_C=2};
+
+enum {NORMAL=1, CREDIT=2};
 class Account
 {
     int accID;
     int balance;
     char * cusName;
 public:
-    Account(int accID, int balance, char * cusName);
-    Account(const Account & copy);
+    Account(int ID, int money, const char * name);
+    Account(const Account &ref);
 
     int GetAccID() const;
-    void Deposit(int money);
+    virtual void Deposit(int money);
     int Withdraw(int money);
     void ShowAccInfo() const;
     ~Account();
 };
 
-Account::Account(int accID, int balance, char * cusName)
+Account::Account(int ID, int money, const char * name)
+    :accID(ID), balance(money)
 {
-    this->accID=accID;
-    this->balance=balance;
-    this->cusName=new char[strlen(cusName)+1];
-    strcpy(this->cusName, cusName);
+    cusName=new char[strlen(name)+1];
+    strcpy(cusName, name);
 }
 
-Account::Account(const Account & copy)
+Account::Account(const Account &ref)
+    :accID(ref.accID), balance(ref.balance)
 {
-    this->accID=copy.accID;
-    this->balance=copy.balance;
-    this->cusName=new char[strlen(copy.cusName)+1];
-    strcpy(this->cusName, copy.cusName);
+    cusName=new char[strlen(ref.cusName)+1];
+    strcpy(cusName, ref.cusName);
 }
 
-int Account::GetAccID() const { return accID; }
+int Account::GetAccID() const
+{
+    return accID;
+}
 
 void Account::Deposit(int money)
 {
@@ -47,16 +51,14 @@ void Account::Deposit(int money)
 int Account::Withdraw(int money)
 {
     if(balance<money)
-    {
         return 0;
-    }
     balance-=money;
     return money;
 }
 
 void Account::ShowAccInfo() const
 {
-    cout<<"ID: "<<accID<<endl;
+    cout<<"Account ID: "<<accID<<endl;
     cout<<"Name: "<<cusName<<endl;
     cout<<"Balance: $"<<balance<<endl;
 }
@@ -66,9 +68,39 @@ Account::~Account()
     delete []cusName;
 }
 
+class NormalAccount : public Account
+{
+    int interestRate;
+public:
+    NormalAccount(int ID, int money, const char * name, int rate)
+        : Account(ID, money, name), interestRate(rate)
+    {}
+
+    virtual void Deposit(int money)
+    {
+        Account::Deposit(money);
+        Account::Deposit(money*(interestRate/100.0));
+    }
+};
+
+class HighCreditAccount : public NormalAccount
+{
+    int specialRate;
+public:
+    HighCreditAccount(int ID, int money, const char * name, int rate, int special)
+        :NormalAccount(ID, money, name, rate), specialRate(special)
+    {}
+
+    virtual void Deposit(int money)
+    {
+        Account::Deposit(money);
+        Account::Deposit(money*(specialRate/100.0));
+    }
+};
+
 class AccountHandler
 {
-    Account * accArr[100];
+    Account* accArr[100];
     int accNum;
 public:
     AccountHandler();
@@ -76,64 +108,111 @@ public:
     void CreateAccount(void);
     void DepositMoney(void);
     void WithdrawMoney(void);
-    void ShowAllInfo(void);
+    void ShowAllAccInfo(void) const;
     ~AccountHandler();
+protected:
+    void CreateNormalAccount(void);
+    void CreateCreditAccount(void);
 };
 
 void AccountHandler::ShowMenu(void) const
 {
-    cout<<"-----Menu-----"<<endl;
+    cout<<"-----MENU-----"<<endl;
     cout<<"1. Create Account"<<endl;
     cout<<"2. Deposit"<<endl;
-    cout<<"3. Withdraw"<<endl;
-    cout<<"4. Account Information"<<endl;
-    cout<<"5. Quit"<<endl;
+    cout<<"3. Withdrawl"<<endl;
+    cout<<"4. Show Account Information"<<endl;
+    cout<<"5. Exit"<<endl<<endl;
 }
 
 void AccountHandler::CreateAccount(void)
 {
+    int select;
+    cout<<"[Choose Normal/Credit Account]"<<endl;
+    cout<<"1. Normal Account"<<endl;
+    cout<<"2. Credit Account"<<endl;
+    cout<<"Choose: ";
+    cin>>select;
+
+    if(select==NORMAL)
+        CreateNormalAccount();
+    else
+        CreateCreditAccount();
+}
+
+void AccountHandler::CreateNormalAccount(void)
+{
     int id;
     char name[NAME_LEN];
     int balance;
+    int interestRate;
 
-    cout<<"Creating Account"<<endl;
-    cout<<"ID: "; cin>>id;
+    cout<<"---Create Normal Account---"<<endl;
+    cout<<"Account ID: "; cin>>id;
     cout<<"Name: "; cin>>name;
-    cout<<"Balance: "; cin>>balance;
+    cout<<"Deposit: $"; cin>>balance;
+    cout<<"Interest Rate: "; cin>>interestRate;
     cout<<endl;
 
-    accArr[accNum++]=new Account(id, balance, name);
+    accArr[accNum++]=new NormalAccount(id, balance, name, interestRate);
+}
+
+void AccountHandler::CreateCreditAccount(void)
+{
+    int id;
+    char name[NAME_LEN];
+    int balance;
+    int interestRate;
+    int creditLevel;
+
+    cout<<"---Create Credit Account---"<<endl;
+    cout<<"Account ID: "; cin>>id;
+    cout<<"Name: "; cin>>name;
+    cout<<"Deposit: $"; cin>>balance;
+    cout<<"InterestRate: "; cin>>interestRate;
+    cout<<"Credit Level(1toA, 2toB, 3toC): "; cin>>creditLevel;
+    cout<<endl;
+
+    switch(creditLevel)
+    {
+    case 1:
+        accArr[accNum++]= new HighCreditAccount(id, balance, name, interestRate, LEVEL_A);
+        break;
+    case 2:
+        accArr[accNum++]= new HighCreditAccount(id, balance, name, interestRate, LEVEL_B);
+        break;
+    case 3:
+        accArr[accNum++]= new HighCreditAccount(id, balance, name, interestRate, LEVEL_C);
+    }
 }
 
 void AccountHandler::DepositMoney(void)
 {
     int money;
     int id;
-
-    cout<<"Deposit"<<endl;
-    cout<<"ID: "; cin>>id;
-    cout<<"Amount to deposit: $"; cin>>money;
+    cout<<"[DEPOSIT]"<<endl;
+    cout<<"Account ID: "; cin>>id;
+    cout<<"Amount to Deposit: $"; cin>>money;
 
     for(int i=0; i<accNum; i++)
     {
         if(accArr[i]->GetAccID()==id)
         {
             accArr[i]->Deposit(money);
-            cout<<"Finishing Deposit"<<endl;
+            cout<<"Deposit Completed"<<endl;
             return;
         }
     }
-    cout<<"Invalid ID"<<endl;
+    cout<<"Invalid Account ID"<<endl<<endl;
 }
 
 void AccountHandler::WithdrawMoney(void)
 {
     int money;
     int id;
-
-    cout<<"Withdrawl"<<endl;
-    cout<<"ID: "; cin>>id;
-    cout<<"Amount to with drawl: $"; cin>>money;
+    cout<<"[WITHDRAWL]"<<endl;
+    cout<<"Account ID: "; cin>>id;
+    cout<<"Amount to Withdrawl: $"; cin>>money;
 
     for(int i=0; i<accNum; i++)
     {
@@ -141,19 +220,19 @@ void AccountHandler::WithdrawMoney(void)
         {
             if(accArr[i]->Withdraw(money)==0)
             {
-                cout<<"Balance Insufficient"<<endl;
+                cout<<"Insuffienct Amount in Balance"<<endl;
                 return;
             }
-            cout<<"Finishing Withrawl"<<endl;
-            return;
         }
+        cout<<"Withdrawl Completed"<<endl;
+        return;
     }
-    cout<<"Invalid Account ID"<<endl;
+    cout<<"Invalid Account ID"<<endl<<endl;
 }
 
 AccountHandler::AccountHandler() : accNum(0) {}
 
-void AccountHandler::ShowAllInfo(void)
+void AccountHandler::ShowAllAccInfo(void) const
 {
     for(int i=0; i<accNum; i++)
     {
@@ -165,10 +244,9 @@ void AccountHandler::ShowAllInfo(void)
 AccountHandler::~AccountHandler()
 {
     for(int i=0; i<accNum; i++)
-    {
         delete accArr[i];
-    }
 }
+
 int main(void)
 {
     AccountHandler manager;
@@ -177,7 +255,7 @@ int main(void)
     while(1)
     {
         manager.ShowMenu();
-        cout<<"Select... ";
+        cout<<"Select: ";
         cin>>choice;
         cout<<endl;
 
@@ -193,12 +271,12 @@ int main(void)
             manager.WithdrawMoney();
             break;
         case INQUIRE:
-            manager.ShowAllInfo();
+            manager.ShowAllAccInfo();
             break;
         case EXIT:
             return 0;
         default:
-            cout<<"Invalid Selection"<<endl;
+            cout<<"Illegal Selection"<<endl;
         }
     }
     return 0;
